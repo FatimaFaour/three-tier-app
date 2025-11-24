@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Three-Tier App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background: #ffffff;
+            padding: 24px 32px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>Three-Tier Demo</h1>
+    <div id="message">Loading message...</div>
+</div>
+
+<script>
+async function loadMessage() {
+    const res = await fetch("/api/message");
+    const data = await res.json();
+    document.getElementById("message").textContent = data.message;
+}
+loadMessage();
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  db:
+    build: ./db
+    container_name: three-tier-db
+    environment:
+      POSTGRES_DB: three_tier_db
+      POSTGRES_USER: three_tier_user
+      POSTGRES_PASSWORD: three_tier_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: three-tier-backend
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: three_tier_db
+      DB_USER: three_tier_user
+      DB_PASSWORD: three_tier_password
+    depends_on:
+      - db
+    ports:
+      - "5000:5000"
+
+  frontend:
+    build: ./frontend
+    container_name: three-tier-frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  db_data:
