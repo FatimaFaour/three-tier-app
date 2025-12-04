@@ -4,33 +4,15 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-# def get_db_connection():
-#     conn = psycopg2.connect(
-#         dbname=os.environ.get("DB_NAME", "three_tier_db"),
-#         user=os.environ.get("DB_USER", "three_tier_user"),
-#         password=os.environ.get("DB_PASSWORD", "three_tier_password"),
-#         host=os.environ.get("DB_HOST", "db"),
-#         port=os.environ.get("DB_PORT", 5432),
-#     )
-#     return conn
-
 def get_db_connection():
-    db_url = os.environ.get("DATABASE_URL")
-
-    if db_url:
-        # Render / cloud style: full URL like postgres://user:pass@host:port/dbname
-        conn = psycopg2.connect(db_url)
-    else:
-        # Local / Docker style
-        conn = psycopg2.connect(
-            dbname=os.environ.get("DB_NAME", "three_tier_db"),
-            user=os.environ.get("DB_USER", "three_tier_user"),
-            password=os.environ.get("DB_PASSWORD", "three_tier_password"),
-            host=os.environ.get("DB_HOST", "db"),
-            port=os.environ.get("DB_PORT", 5432),
-        )
-    return conn
-
+     conn = psycopg2.connect(
+         dbname=os.environ.get("DB_NAME", "three_tier_db"),
+         user=os.environ.get("DB_USER", "three_tier_user"),
+         password=os.environ.get("DB_PASSWORD", "three_tier_password"),
+         host=os.environ.get("DB_HOST", "db"),
+         port=os.environ.get("DB_PORT", 5432),
+     )
+     return conn
 
 
 @app.route("/")
@@ -131,9 +113,6 @@ def delete_task(task_id):
     return jsonify({"status": "deleted", "id": task_id})
     
 
-# if __name__ == "__main__":
-#     app.run(host="0.0.0.0", port=5000)
-
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+     app.run(host="0.0.0.0", port=5000)
+
