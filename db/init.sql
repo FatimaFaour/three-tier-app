@@ -1,7 +1,10 @@
-CREATE TABLE IF NOT EXISTS messages (
+CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL PRIMARY KEY,
-    text VARCHAR(255) NOT NULL
+    task_text VARCHAR(255) NOT NULL,
+    is_done BOOLEAN DEFAULT FALSE
 );
 
-INSERT INTO messages (text)
-VALUES ('Hello! Your code is successful. :)');
+INSERT INTO tasks (task_text, is_done) VALUES
+('Finish cloud computing homework', FALSE),
+('Review three-tier architecture slides', TRUE),
+('Practice Docker commands', FALSE);

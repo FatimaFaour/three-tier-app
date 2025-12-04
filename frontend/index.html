@@ -2,40 +2,244 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Three-Tier App</title>
+    <title>Simple To-Do Tasks Manager</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
-            font-family: system-ui, sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             background: #f5f5f5;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
         }
         .card {
             background: #ffffff;
             padding: 24px 32px;
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            max-width: 480px;
+            width: 100%;
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 1.4rem;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 16px 0;
+        }
+        li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.95rem;
+        }
+        li:last-child {
+            border-bottom: none;
+        }
+        .left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .task-done {
+            text-decoration: line-through;
+            color: #888;
+        }
+        button {
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+        }
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+        form {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 0.95rem;
+        }
+        .status {
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: #777;
+        }
+        .status.error {
+            color: #c0392b;
+        }
+        .status.success {
+            color: #27ae60;
         }
     </style>
 </head>
 <body>
 <div class="card">
-    <h1>Three-Tier Demo</h1>
-    <div id="message">Loading message...</div>
+    <h1>Simple To-Do Tasks Manager</h1>
+
+    <ul id="tasksList">
+        <li>Loading tasks...</li>
+    </ul>
+
+    <form id="taskForm">
+        <input type="text" id="taskInput" placeholder="Add a new task..." autocomplete="off">
+        <button type="submit">Add</button>
+    </form>
+
+    <div class="status" id="status"></div>
 </div>
 
 <script>
-async function loadMessage() {
-    const res = await fetch("/api/message");
-    const data = await res.json();
-    document.getElementById("message").textContent = data.message;
-}
-loadMessage();
+    const tasksList = document.getElementById('tasksList');
+    const form = document.getElementById('taskForm');
+    const input = document.getElementById('taskInput');
+    const statusEl = document.getElementById('status');
+
+    async function loadTasks() {
+        tasksList.innerHTML = '<li>Loading tasks...</li>';
+        statusEl.textContent = '';
+        statusEl.className = 'status';
+
+        try {
+            const res = await fetch('/api/tasks');
+            if (!res.ok) {
+                throw new Error('Failed to load tasks: HTTP ' + res.status);
+            }
+            const data = await res.json();
+            const tasks = data.tasks || [];
+
+            if (tasks.length === 0) {
+                tasksList.innerHTML = '<li>No tasks yet.</li>';
+                return;
+            }
+
+            tasksList.innerHTML = '';
+            for (const task of tasks) {
+                const li = document.createElement('li');
+
+                const left = document.createElement('div');
+                left.className = 'left';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = task.is_done;
+                checkbox.addEventListener('change', () => toggleTask(task.id));
+
+                const span = document.createElement('span');
+                span.textContent = task.task_text;
+                if (task.is_done) {
+                    span.classList.add('task-done');
+                }
+
+                left.appendChild(checkbox);
+                left.appendChild(span);
+
+                const delBtn = document.createElement('button');
+                delBtn.textContent = 'Delete';
+                delBtn.className = 'delete-btn';
+                delBtn.addEventListener('click', () => deleteTask(task.id));
+
+                li.appendChild(left);
+                li.appendChild(delBtn);
+                tasksList.appendChild(li);
+            }
+        } catch (err) {
+            console.error(err);
+            tasksList.innerHTML = '<li>Error loading tasks.</li>';
+            statusEl.textContent = err.message;
+            statusEl.className = 'status error';
+        }
+    }
+
+    async function addTask(event) {
+        event.preventDefault();
+        const text = input.value.trim();
+        if (!text) {
+            statusEl.textContent = 'Please enter a task.';
+            statusEl.className = 'status error';
+            return;
+        }
+
+        statusEl.textContent = 'Adding task...';
+        statusEl.className = 'status';
+
+        try {
+            const res = await fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ task_text: text })
+            });
+            if (!res.ok) {
+                throw new Error('Failed to add task: HTTP ' + res.status);
+            }
+            input.value = '';
+            statusEl.textContent = 'Task added.';
+            statusEl.className = 'status success';
+            await loadTasks();
+        } catch (err) {
+            console.error(err);
+            statusEl.textContent = err.message;
+            statusEl.className = 'status error';
+        }
+    }
+
+    async function toggleTask(id) {
+        statusEl.textContent = '';
+        statusEl.className = 'status';
+
+        try {
+            const res = await fetch(`/api/tasks/${id}/toggle`, {
+                method: 'PUT'
+            });
+            if (!res.ok) {
+                throw new Error('Failed to update task: HTTP ' + res.status);
+            }
+            await loadTasks();
+        } catch (err) {
+            console.error(err);
+            statusEl.textContent = err.message;
+            statusEl.className = 'status error';
+        }
+    }
+
+    async function deleteTask(id) {
+        statusEl.textContent = '';
+        statusEl.className = 'status';
+
+        try {
+            const res = await fetch(`/api/tasks/${id}`, {
+                method: 'DELETE'
+            });
+            if (!res.ok) {
+                throw new Error('Failed to delete task: HTTP ' + res.status);
+            }
+            await loadTasks();
+        } catch (err) {
+            console.error(err);
+            statusEl.textContent = err.message;
+            statusEl.className = 'status error';
+        }
+    }
+
+    form.addEventListener('submit', addTask);
+    loadTasks();
 </script>
 </body>
 </html>
