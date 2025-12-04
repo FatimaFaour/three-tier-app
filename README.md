@@ -1,6 +1,6 @@
-# Three-Tier Web Application Using Docker
+# Three-Tier Web Application Using Docker and Kubernetes
 
-This project demonstrates a simple and clean implementation of a **three-tier web application**, with each component running inside its own Docker container.Its structure reflects a commonly used architectural pattern in modern software systems.
+This project demonstrates a simple and clean implementation of a **three-tier web application**, with each component running inside its own Docker container. The structure reflects a commonly used architectural pattern in modern software systems.
 
 The three tiers are:
 
@@ -13,7 +13,7 @@ The purpose of this project is to show how data flows from the database → back
 ---
 
 ## Project Structure
-```bash
+```
 three-tier-app/
 │
 ├── frontend/
@@ -30,36 +30,41 @@ three-tier-app/
 │ ├── init.sql
 │ └── Dockerfile
 │
+├── k8s/
+│ └── three-tier-all.yaml
+│
 └── docker-compose.yml
 ```
-
 
 Each folder contains all the required files for its corresponding layer.
 
 ---
+
+# Docker Deployment
 
 ## 1. Database Layer
 
 The database layer initializes PostgreSQL using:
 
 - **init.sql** — Creates a table and inserts an initial message  
-- **Dockerfile** — Builds a PostgreSQL image and copies the initialization script into it
+- **Dockerfile** — Builds a PostgreSQL image and copies the initialization script  
 
 When the database container is started for the first time, PostgreSQL executes the SQL script automatically.
 
 ---
 
 ## 2. Backend Layer 
+
 The backend is a small Flask application that:
 
 1. Connects to the PostgreSQL database  
-2. Reads the stored message  
+2. Reads the stored data  
 3. Returns it as JSON to the frontend  
 
 Main files:
 
 - **app.py** — Contains the Flask API logic  
-- **requirements.txt** — Defines Python dependencies  
+- **requirements.txt** — Python dependencies  
 - **Dockerfile** — Builds and runs the Flask server  
 
 This layer acts as the bridge between the UI and the data storage.
@@ -68,60 +73,121 @@ This layer acts as the bridge between the UI and the data storage.
 
 ## 3. Frontend Layer 
 
-The frontend is a minimal HTML page that fetches and displays the message coming from the backend.
+The frontend is a minimal HTML interface that fetches and displays data coming from the backend.
 
 It includes:
 
 - **index.html** — The user interface  
-- **nginx.conf** — Nginx configuration for static hosting and reverse proxy  
-- **Dockerfile** — Builds the Nginx image with the UI and configuration  
+- **nginx.conf** — Nginx configuration  
+- **Dockerfile** — Builds the Nginx image  
 
-Nginx serves the page and forwards API requests to the backend container.
+Nginx serves the static files and forwards API requests to the backend container.
 
 ---
 
-## Running the Application
+# Running the Application with Docker
 
-From the project root folder:
+From the project root:
 
-```bash
+```
 docker compose build
-docker compose up 
+docker compose up
 ```
 
-Once the stack is running, open the application in your browser:
+Open the application:
 
+```
 http://localhost:8080
+```
 
+Stopping the application:
 
-You should see the message retrieved from the PostgreSQL database.
-
-## Stopping the Application
-```bash
+```
 docker compose down
 ```
-## Updating the Database Message
-The SQL initialization file (init.sql) is executed only the first time the database container is created.
-If you modify init.sql and want PostgreSQL to reload it, you must force a rebuild:
-```bash
+
+---
+
+# Updating the Database Message
+
+`init.sql` runs **only on first creation** of the database container.  
+To re-apply modifications, you must rebuild PostgreSQL:
+
+```
 docker compose down
 docker compose build --no-cache
 docker compose up
 ```
 
-This rebuilds PostgreSQL and re-applies the updated SQL script.
+---
 
+# Kubernetes Deployment 
 
+The project also includes a full Kubernetes setup replicating the same three-tier architecture.  
+Kubernetes manages the application's lifecycle using declarative configuration and ensures each component is running as defined.
 
-## Summary
-This project demonstrates a clear and professional implementation of a three-tier architecture:
+### Files:
+```
+k8s/three-tier-all.yaml
+```
 
-A dedicated UI layer
+### This file defines:
 
-A separate API layer
+- **Deployments** for:
+  - Database (PostgreSQL)
+  - Backend (Flask API)
+  - Frontend (Nginx)
 
-An isolated database layer
+- **Services** for:
+  - `db` → ClusterIP (internal communication)
+  - `backend` → ClusterIP (internal API access)
+  - `three-tier-frontend` → NodePort (external access)
 
-Each tier is fully containerized and easy to maintain or extend.
+### Running the Kubernetes Version
 
+1. Ensure Kubernetes is enabled (Docker Desktop → Settings → Kubernetes).
+2. Apply the configuration:
 
+```
+kubectl apply -f k8s/three-tier-all.yaml
+```
+
+3. Check running pods:
+
+```
+kubectl get pods
+```
+
+4. Access the application through the NodePort service:
+
+```
+http://localhost:30080
+```
+
+### Viewing the Database Inside Kubernetes
+
+To inspect the PostgreSQL database:
+
+```
+kubectl exec -it <db-pod-name> -- psql -U three_tier_user -d three_tier_db
+```
+
+Then:
+
+```
+SELECT * FROM tasks;
+```
+
+Each environment (Docker and Kubernetes) has its **own** isolated database instance.
+
+---
+
+# Summary
+
+This project demonstrates a clear and professional implementation of a distributed three-tier architecture:
+
+- A dedicated **UI layer**  
+- A separate **API layer**  
+- An isolated **database layer**  
+
+Both **Docker Compose** and **Kubernetes** deployments are supported, showing the evolution from simple containerization to full orchestration. Each tier is fully modular, making the system easy to maintain, scale, or extend.
